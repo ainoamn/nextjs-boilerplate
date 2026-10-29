@@ -1,5 +1,3 @@
-import type { NextConfig } from "next";
-
 const IDENTITY_CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://id.bhd-om.com",
@@ -10,7 +8,8 @@ const IDENTITY_CSP = [
   "frame-src https://id.bhd-om.com",
 ].join("; ");
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   async headers() {
     return [
       {
