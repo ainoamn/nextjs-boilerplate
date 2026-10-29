@@ -23,3 +23,7 @@
 
 - `BHD-ACCOUNT-ISOLATION.md` — rebind أولاً (§93 في BHD-HR)
 - `BHD-CURSOR-PRODUCT-WIRE.md` — قائمة تحقق كاملة
+
+## تحديث §95 (29 أكتوبر 2026)
+
+إصلاح جذر العزل على الهوية: `POST /api/auth/switch` يكتب `bhd_id` دائماً. هذا المنتج يعتمد `rebind` محلياً بعد التبديل. التفاصيل: `BHD-ACCOUNT-ISOLATION.md`.
