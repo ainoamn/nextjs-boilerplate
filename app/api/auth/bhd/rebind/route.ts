@@ -32,11 +32,50 @@ async function profileFromWindowToken(token: string) {
   };
 }
 
+function bindReturnPath(returnTo: string, sub: string) {
+  const safe = safeReturnPath(returnTo);
+  try {
+    const url = new URL(safe, "https://bhd.local");
+    url.searchParams.set("au", sub);
+    url.searchParams.set("_bhd", String(Date.now()));
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return safe;
+  }
+}
+
+function wantsJson(request: Request) {
+  const accept = request.headers.get("accept") || "";
+  return accept.includes("application/json");
+}
+
+function redirectHome(origin: string, returnTo: string) {
+  const response = NextResponse.redirect(new URL(returnTo, origin), 303);
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  response.headers.set("Pragma", "no-cache");
+  return response;
+}
+
+function jsonOk(
+  payload: { ok: true; unchanged?: boolean; user: { id: string; email: string; name: string } },
+  session?: string,
+) {
+  const response = NextResponse.json(payload, {
+    headers: { "Cache-Control": "no-store, no-cache, must-revalidate, private", Pragma: "no-cache" },
+  });
+  if (session) {
+    response.cookies.set(SESSION_COOKIE, session, sessionCookieOptions());
+  }
+  return response;
+}
+
 async function rebind(request: Request) {
   const url = new URL(request.url);
   const origin = url.origin;
+  const json = wantsJson(request);
 
   if (!isSsoConfigured() || !authSecret()) {
+    if (json) return NextResponse.json({ ok: false, error: "sso" }, { status: 503 });
     return NextResponse.json(
       {
         message: "Configure AUTH_SECRET and BHD_OAUTH_* before rebind",
@@ -50,9 +89,9 @@ async function rebind(request: Request) {
   let returnTo = "/";
   const contentType = request.headers.get("content-type") || "";
   if (request.method === "POST" && contentType.includes("application/json")) {
-    const json = (await request.json().catch(() => ({}))) as { token?: string; returnTo?: string };
-    token = typeof json.token === "string" ? json.token.trim() : "";
-    returnTo = safeReturnPath(json.returnTo);
+    const body = (await request.json().catch(() => ({}))) as { token?: string; returnTo?: string };
+    token = typeof body.token === "string" ? body.token.trim() : "";
+    returnTo = safeReturnPath(body.returnTo);
   } else if (request.method === "POST") {
     const form = await request.formData().catch(() => null);
     token = String(form?.get("token") || "").trim();
@@ -65,6 +104,7 @@ async function rebind(request: Request) {
   if (!token && header?.toLowerCase().startsWith("bearer ")) token = header.slice(7).trim();
 
   if (!token || token.length < 20) {
+    if (json) return NextResponse.json({ ok: false, error: "token" }, { status: 401 });
     return NextResponse.redirect(
       new URL(`/api/auth/bhd/start?returnTo=${encodeURIComponent(returnTo)}`, origin),
       303,
@@ -75,16 +115,38 @@ async function rebind(request: Request) {
     const profile = await profileFromWindowToken(token);
     const jar = await cookies();
     const current = await readSessionToken(jar.get(SESSION_COOKIE)?.value || "");
+
     if (current?.sub === profile.sub) {
-      return NextResponse.redirect(new URL(returnTo, origin), 303);
+      if (json) {
+        return jsonOk({
+          ok: true,
+          unchanged: true,
+          user: { id: profile.sub, email: current.email, name: current.name },
+        });
+      }
+      const user = await upsertUserFromIdentity(profile);
+      const session = await signSession(user);
+      const response = redirectHome(origin, bindReturnPath(returnTo, profile.sub));
+      response.cookies.set(SESSION_COOKIE, session, sessionCookieOptions());
+      return response;
     }
+
     const user = await upsertUserFromIdentity(profile);
     const session = await signSession(user);
-    const response = NextResponse.redirect(new URL(returnTo, origin), 303);
+
+    if (json) {
+      return jsonOk({ ok: true, user: { id: user.sub, email: user.email, name: user.name } }, session);
+    }
+
+    const response = redirectHome(origin, bindReturnPath(returnTo, profile.sub));
     response.cookies.set(SESSION_COOKIE, session, sessionCookieOptions());
-    response.headers.set("Cache-Control", "no-store");
     return response;
   } catch {
+    if (json) {
+      const response = NextResponse.json({ ok: false, error: "rebind" }, { status: 401 });
+      response.cookies.set(SESSION_COOKIE, "", { ...sessionCookieOptions(), maxAge: 0 });
+      return response;
+    }
     return NextResponse.redirect(
       new URL(
         `/api/auth/bhd/logout?continue=${encodeURIComponent(`/api/auth/bhd/start?returnTo=${encodeURIComponent(returnTo)}`)}`,
