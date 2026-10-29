@@ -25,7 +25,7 @@
 
 | المستودع | النطاق | حالة السلك (هدف 29 أكتوبر) |
 |---|---|---|
-| [ONE-BHD](https://github.com/ainoamn/ONE-BHD) | الهوية + البوابة | مصدر الحقيقة + نشر Vercel |
+| [ONE-BHD](https://github.com/ainoamn/ONE-BHD) | الهوية + البوابة | مصدر الحقيقة + portal `bhd/logout` + `bhd/rebind` + نشر Vercel |
 | [BHD-HR](https://github.com/ainoamn/BHD-HR) | موارد بشرية | مرجع كامل 7/7 + §93 rebind |
 | [WAZEN](https://github.com/ainoamn/WAZEN) | وازن | يُحدَّث: سكربت، rebind، كتالوج، توثيق |
 | [hisaby](https://github.com/ainoamn/hisaby) | حسابي | يُحدَّث |
@@ -33,8 +33,8 @@
 | [BHD-R](https://github.com/ainoamn/BHD-R) | المكتب / R | يُحدَّث |
 | [Nasab](https://github.com/ainoamn/Nasab) | نَسَب | يُحدَّث |
 | [bhd-om](https://github.com/ainoamn/bhd-om) | www تسويق | يُحدَّث |
-| [ainoamn-ain-oman-web](https://github.com/ainoamn/ainoamn-ain-oman-web) | عين عُمان | يُحدَّث / يُزرع السلك |
-| [nextjs-boilerplate](https://github.com/ainoamn/nextjs-boilerplate) | قالب | يُزرع قالب سلك جاهز |
+| [ainoamn-ain-oman-web](https://github.com/ainoamn/ainoamn-ain-oman-web) | عين عُمان | **سلك أدنى 29/10** — سكربت، CSP، كتالوج، `/api/auth/bhd/*` (TODO ربط AuthContext) |
+| [nextjs-boilerplate](https://github.com/ainoamn/nextjs-boilerplate) | قالب | **قالب App Router 29/10** — سكربت، catalog grid، rebind-first client، OAuth stubs |
 
 ---
 
